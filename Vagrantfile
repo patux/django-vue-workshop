@@ -15,10 +15,30 @@ unless Vagrant.has_plugin?("vagrant-reload")
 end
 
 Vagrant.configure("2") do |config|
-  config.vm.box = "almalinux/10"
-  config.vm.hostname = "flisolcabal"
 
-  config.vm.disk :disk, size: "100GB", primary: true
+  config.vm.define "frontend" do |frontend|
+    frontend.vm.box = "almalinux/10"
+    frontend.vm.hostname = "frontend"
+    frontend.vm.network "private_network", ip: "192.168.33.10"
+    
+    # Provision specific to this host
+    frontend.vm.provision :shell, inline: "dnf update -y"
+    frontend.vm.provision :reload
+    frontend.vm.provision :shell, path: "frontend.sh"
+  end
+
+  config.vm.define "backend" do |backend|
+    backend.vm.box = "almalinux/10"
+    backend.vm.hostname = "backend"
+    backend.vm.network "private_network", ip: "192.168.33.20"
+    
+    # Provision specific to this host
+    backend.vm.provision :shell, inline: "dnf update -y"
+    backend.vm.provision :reload
+    backend.vm.provision :shell, path: "backend.sh"
+  end
+
+  config.vm.provision :shell, path: "common.sh"
 
   config.vm.provider "virtualbox" do |vb|
     # VirtualBox specific configuration
@@ -31,11 +51,4 @@ Vagrant.configure("2") do |config|
     lv.memory = 4096
     lv.cpus = 2
   end
-
-  config.vm.provision "shell", inline: <<-SHELL
-      dnf update -y
-  SHELL
-
-  config.vm.provision :reload
-  config.vm.provision :shell, path: "postscript.sh"
 end
