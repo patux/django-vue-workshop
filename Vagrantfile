@@ -1,10 +1,15 @@
 # -*- mode: ruby -*-
 # vi: set ft=ruby :
 
-# Pick your preferred virtual machine (or you flag --provider=[PROVIDER NAME]
-# ENV['VAGRANT_DEFAULT_PROVIDER'] = "virtualbox"
-ENV['VAGRANT_DEFAULT_PROVIDER'] = "libvirt"
-#
+require 'yaml'
+if File.file?('config.yaml')
+  conf = YAML.load_file('config.yaml')
+else
+  raise "Configuration file 'config.yaml' does not exist."
+end
+
+ENV['VAGRANT_DEFAULT_PROVIDER'] = conf["project_provider"]
+
 # libvirt provider may not create the port forwarding tunnels for apache and mysql
 # Create with:
 # vagrant ssh -- -f -N -L 8080:localhost:80
@@ -16,25 +21,28 @@ end
 
 Vagrant.configure("2") do |config|
 
+$edit_hosts= <<SETHOSTS
+   echo #{conf['ip_address_backend']} #{conf['hostname_backend']} >> /etc/hosts
+   echo #{conf['ip_address_frontend']} #{conf['hostname_frontend']} >> /etc/hosts
+SETHOSTS
+
   config.vm.define "frontend" do |frontend|
     frontend.vm.box = "almalinux/10"
-    frontend.vm.hostname = "frontend"
-    frontend.vm.network "private_network", ip: "192.168.33.10"
+    frontend.vm.hostname = conf["hostname_frontend"]
+    frontend.vm.network "private_network", ip: conf["ip_address_frontend"] 
     
     # Provision specific to this host
-    frontend.vm.provision :shell, inline: "dnf update -y"
-    frontend.vm.provision :reload
+    frontend.vm.provision :shell, :inline => $edit_hosts
     frontend.vm.provision :shell, path: "frontend.sh"
   end
 
   config.vm.define "backend" do |backend|
     backend.vm.box = "almalinux/10"
-    backend.vm.hostname = "backend"
-    backend.vm.network "private_network", ip: "192.168.33.20"
+    backend.vm.hostname = conf["hostname_backend"]
+    backend.vm.network "private_network", ip: conf["ip_address_backend"]
     
     # Provision specific to this host
-    backend.vm.provision :shell, inline: "dnf update -y"
-    backend.vm.provision :reload
+    backend.vm.provision :shell, :inline => $edit_hosts
     backend.vm.provision :shell, path: "backend.sh"
   end
 

@@ -1,1 +1,3 @@
 .vagrant
+*VBoxHeadless*.log
+config.yaml
