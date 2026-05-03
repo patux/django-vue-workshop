@@ -14,37 +14,12 @@ ENV['VAGRANT_DEFAULT_PROVIDER'] = conf["project_provider"]
 # Create with:
 # vagrant ssh -- -f -N -L 8080:localhost:80
 
-unless Vagrant.has_plugin?("vagrant-reload")
-    puts 'Installing vagrant-reload Plugin...'
-    system('vagrant plugin install vagrant-reload')
-end
-
 Vagrant.configure("2") do |config|
 
 $edit_hosts= <<SETHOSTS
    echo #{conf['ip_address_backend']} #{conf['hostname_backend']} >> /etc/hosts
    echo #{conf['ip_address_frontend']} #{conf['hostname_frontend']} >> /etc/hosts
 SETHOSTS
-
-  config.vm.define "frontend" do |frontend|
-    frontend.vm.box = "almalinux/10"
-    frontend.vm.hostname = conf["hostname_frontend"]
-    frontend.vm.network "private_network", ip: conf["ip_address_frontend"] 
-    
-    # Provision specific to this host
-    frontend.vm.provision :shell, :inline => $edit_hosts
-    frontend.vm.provision :shell, path: "frontend.sh"
-  end
-
-  config.vm.define "backend" do |backend|
-    backend.vm.box = "almalinux/10"
-    backend.vm.hostname = conf["hostname_backend"]
-    backend.vm.network "private_network", ip: conf["ip_address_backend"]
-    
-    # Provision specific to this host
-    backend.vm.provision :shell, :inline => $edit_hosts
-    backend.vm.provision :shell, path: "backend.sh"
-  end
 
   config.vm.provision :shell, path: "common.sh"
 
@@ -59,4 +34,29 @@ SETHOSTS
     lv.memory = 4096
     lv.cpus = 2
   end
+
+  config.vm.define "frontend" do |frontend|
+    frontend.vm.box = "almalinux/10"
+    frontend.vm.hostname = conf["hostname_frontend"]
+    frontend.vm.network "private_network", ip: conf["ip_address_frontend"]
+    frontend.vm.network "forwarded_port", guest: 9000, host: 9000, auto_correct: true
+
+    
+    # Provision specific to this host
+    frontend.vm.provision :shell, :inline => $edit_hosts
+    frontend.vm.provision "frontend", type: "shell", path: "frontend.sh"
+  end
+
+  config.vm.define "backend" do |backend|
+    backend.vm.box = "almalinux/10"
+    backend.vm.hostname = conf["hostname_backend"]
+    backend.vm.network "private_network", ip: conf["ip_address_backend"]
+    backend.vm.network "forwarded_port", guest: 8000, host: 8000, auto_correct: true
+    
+    # Provision specific to this host
+    backend.vm.provision :shell, :inline => $edit_hosts
+    backend.vm.provision "backend", type: "shell", path: "backend.sh"
+    backend.vm.provision "djanjogsetup", type: "shell", privileged: false, path: "django_setup.sh",  after: "backend"
+  end
+
 end

@@ -1,3 +1,4 @@
 .vagrant
 *VBoxHeadless*.log
 config.yaml
+workshop
