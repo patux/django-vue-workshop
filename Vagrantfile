@@ -36,7 +36,8 @@ SETHOSTS
   end
 
   config.vm.define "frontend" do |frontend|
-    frontend.vm.box = "almalinux/10"
+    frontend.vm.box = "bento/almalinux-9"
+    frontend.vm.box_version = "202511.24.0"
     frontend.vm.hostname = conf["hostname_frontend"]
     frontend.vm.network "private_network", ip: conf["ip_address_frontend"]
     frontend.vm.network "forwarded_port", guest: 9000, host: 9000, auto_correct: true
@@ -48,7 +49,8 @@ SETHOSTS
   end
 
   config.vm.define "backend" do |backend|
-    backend.vm.box = "almalinux/10"
+    backend.vm.box = "bento/almalinux-9"
+    backend.vm.box_version = "202511.24.0"
     backend.vm.hostname = conf["hostname_backend"]
     backend.vm.network "private_network", ip: conf["ip_address_backend"]
     backend.vm.network "forwarded_port", guest: 8000, host: 8000, auto_correct: true
